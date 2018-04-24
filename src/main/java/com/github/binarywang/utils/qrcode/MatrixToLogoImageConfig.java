@@ -16,17 +16,18 @@ public class MatrixToLogoImageConfig {
   //logo大小默认为照片的1/5
   public static final int DEFAULT_LOGOPART = 5;
 
-  private final int border = DEFAULT_BORDER;
+  private final int border;
   private final Color borderColor;
   private final int logoPart;
 
   public MatrixToLogoImageConfig() {
-    this(DEFAULT_BORDERCOLOR, DEFAULT_LOGOPART);
+    this(DEFAULT_BORDERCOLOR, DEFAULT_LOGOPART, DEFAULT_BORDER);
   }
 
-  public MatrixToLogoImageConfig(Color borderColor, int logoPart) {
+  public MatrixToLogoImageConfig(Color borderColor, int logoPart, int border) {
     this.borderColor = borderColor;
     this.logoPart = logoPart;
+    this.border = border;
   }
 
   public Color getBorderColor() {

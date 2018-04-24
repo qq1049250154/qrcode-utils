@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.*;
 import org.testng.annotations.*;
 
+import java.awt.*;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -33,7 +34,7 @@ public class QrcodeUtilsTest {
 
     @Test
     public void testCreateQrcode() throws Exception {
-        byte[] bytes = QrcodeUtils.createQrcode(content, 800, null);
+        byte[] bytes = QrcodeUtils.createQrcode(content, 800, null, null, null);
         Path path = Files.createTempFile("qrcode_800_", ".jpg");
         generatedQrcodePaths.add(path);
         logger.info("{}", path.toAbsolutePath());
@@ -52,7 +53,8 @@ public class QrcodeUtilsTest {
             File logoFile = Files.createTempFile("logo_", ".jpg").toFile();
             FileUtils.copyInputStreamToFile(inputStream, logoFile);
             logger.info("{}",logoFile);
-            byte[] bytes = QrcodeUtils.createQrcode(content, 800, logoFile);
+            byte[] bytes = QrcodeUtils.createQrcode(content, 800, logoFile,
+                    null, new MatrixToLogoImageConfig(Color.white, 5, 0));
             Path path = Files.createTempFile("qrcode_with_logo_", ".jpg");
             generatedQrcodePaths.add(path);
             logger.info("{}",path.toAbsolutePath());

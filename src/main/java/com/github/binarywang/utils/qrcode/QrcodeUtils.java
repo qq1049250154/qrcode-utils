@@ -30,6 +30,7 @@ import java.util.Map;
 public class QrcodeUtils {
   private static final int DEFAULT_LENGTH = 400;// 生成二维码的默认边长，因为是正方形的，所以高度和宽度一致
   private static final String FORMAT = "jpg";// 生成二维码的格式
+  private static final Integer MARGIN = 1;//指定在生成条码时使用的边界(以像素为单位)
 
   private static Logger logger = LoggerFactory.getLogger(QrcodeUtils.class);
 
@@ -38,15 +39,13 @@ public class QrcodeUtils {
    *
    * @param content 二维码文字内容[为了信息安全性，一般都要先进行数据加密]
    * @param length  二维码图片宽度和高度
+   * @param hints 二维码配置
    */
-  private static BitMatrix createQrcodeMatrix(String content, int length) {
-    Map<EncodeHintType, Object> hints = Maps.newEnumMap(EncodeHintType.class);
-    // 设置字符编码
-    hints.put(EncodeHintType.CHARACTER_SET, Charsets.UTF_8.name());
-    // 指定纠错等级
-    hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
-
+  private static BitMatrix createQrcodeMatrix(String content, int length, Map<EncodeHintType, Object> hints) {
     try {
+      if(hints == null) {
+        hints = defaultEncodeHintType();
+      }
       return new MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, length, length, hints);
     } catch (Exception e) {
       logger.warn("内容为：【" + content + "】的二维码生成失败！", e);
@@ -56,19 +55,38 @@ public class QrcodeUtils {
   }
 
   /**
+   * 获取二维码默认配置
+   * @return hints 二维码配置
+   */
+  private static Map<EncodeHintType, Object> defaultEncodeHintType() {
+    Map<EncodeHintType, Object> hints = Maps.newEnumMap(EncodeHintType.class);
+    // 设置字符编码
+    hints.put(EncodeHintType.CHARACTER_SET, Charsets.UTF_8.name());
+    // 指定纠错等级
+    hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
+    // 设置边框距离
+    hints.put(EncodeHintType.MARGIN, MARGIN);
+    return hints;
+  }
+
+
+  /**
    * 根据指定边长创建生成的二维码
    *
    * @param content  二维码内容
    * @param length   二维码的高度和宽度
    * @param logoFile logo 文件对象，可以为空
+   * @param hints 二维码相关配置（容错级别，边框距离等）,可以为null
+   * @param logoImageConfig logo图片生成规则配置,可以为null
    * @return 二维码图片的字节数组
    */
-  public static byte[] createQrcode(String content, int length, File logoFile) {
+  public static byte[] createQrcode(String content, int length, File logoFile,
+                  Map<EncodeHintType, Object> hints, MatrixToLogoImageConfig logoImageConfig) {
     if (logoFile != null && !logoFile.exists()) {
       throw new IllegalArgumentException("请提供正确的logo文件！");
     }
 
-    BitMatrix qrCodeMatrix = createQrcodeMatrix(content, length);
+    BitMatrix qrCodeMatrix = createQrcodeMatrix(content, length, hints);
     if (qrCodeMatrix == null) {
       return null;
     }
@@ -80,7 +98,7 @@ public class QrcodeUtils {
       if (logoFile != null) {
         // 添加logo图片, 此处一定需要重新进行读取，而不能直接使用二维码的BufferedImage 对象
         BufferedImage img = ImageIO.read(file);
-        overlapImage(img, FORMAT, file.getAbsolutePath(), logoFile, new MatrixToLogoImageConfig());
+        overlapImage(img, FORMAT, file.getAbsolutePath(), logoFile, logoImageConfig);
       }
 
       return toByteArray(file);
@@ -92,14 +110,14 @@ public class QrcodeUtils {
 
   /**
    * 创建生成默认高度(400)的二维码图片
-   * 可以指定是否贷logo
+   * 可以指定logo图片
    *
    * @param content  二维码内容
    * @param logoFile logo 文件对象，可以为空
    * @return 二维码图片的字节数组
    */
   public static byte[] createQrcode(String content, File logoFile) {
-    return createQrcode(content, DEFAULT_LENGTH, logoFile);
+    return createQrcode(content, DEFAULT_LENGTH, logoFile, null, null);
   }
 
   /**
@@ -123,6 +141,7 @@ public class QrcodeUtils {
     }
   }
 
+
   /**
    * 将logo添加到二维码中间
    *
@@ -130,10 +149,15 @@ public class QrcodeUtils {
    * @param imagePath 图片保存路径
    * @param logoFile  logo文件对象
    * @param format    图片格式
+   * @param logoConfig logo配置
    */
   private static void overlapImage(BufferedImage image, String format, String imagePath, File logoFile,
                                    MatrixToLogoImageConfig logoConfig) throws IOException {
     try {
+      if(logoConfig == null) {
+        logoConfig = new MatrixToLogoImageConfig();
+      }
+
       BufferedImage logo = ImageIO.read(logoFile);
       Graphics2D g = image.createGraphics();
       // 考虑到logo图片贴到二维码中，建议大小不要超过二维码的1/5;
